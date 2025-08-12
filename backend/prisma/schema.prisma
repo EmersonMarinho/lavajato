@@ -1,0 +1,126 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String       @id @default(cuid())
+  nome            String
+  telefone        String       @unique
+  endereco        String       // Endereço completo do usuário
+  bairro          String       // Bairro
+  cidade          String       // Cidade
+  estado          String       // Estado (UF)
+  cep             String       // CEP
+  pontos_fidelidade Int        @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relacionamentos
+  cars        Car[]
+  appointments Appointment[]
+
+  @@map("users")
+}
+
+model Car {
+  id       String @id @default(cuid())
+  user_id  String
+  modelo   String
+  placa    String @unique
+  porte    Porte
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  user        User         @relation(fields: [user_id], references: [id])
+  appointments Appointment[]
+
+  @@map("cars")
+}
+
+model Unit {
+  id       String @id @default(cuid())
+  nome     String
+  endereco String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  appointments Appointment[]
+
+  @@map("units")
+}
+
+model Service {
+  id                  String @id @default(cuid())
+  nome                String
+  preco_base          Float
+  adicional_por_porte Float
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relacionamentos
+  appointment_services AppointmentService[]
+
+  @@map("services")
+}
+
+model Appointment {
+  id           String        @id @default(cuid())
+  user_id      String
+  car_id       String
+  unit_id      String
+  status       Status        @default(AGENDADO)
+  data         DateTime
+  hora         String
+  preco_final  Float
+  // Serviço de busca e entrega
+  inclui_busca_entrega Boolean @default(false)
+  custo_busca_entrega  Float   @default(0)
+  endereco_busca       String? // Endereço específico para busca (se diferente do usuário)
+  observacoes_busca    String? // Observações para busca/entrega
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Relacionamentos
+  user                User                 @relation(fields: [user_id], references: [id])
+  car                 Car                  @relation(fields: [car_id], references: [id])
+  unit                Unit                 @relation(fields: [unit_id], references: [id])
+  appointment_services AppointmentService[]
+
+  @@map("appointments")
+}
+
+model AppointmentService {
+  id             String @id @default(cuid())
+  appointment_id String
+  service_id     String
+  createdAt      DateTime @default(now())
+
+  // Relacionamentos
+  appointment Appointment @relation(fields: [appointment_id], references: [id])
+  service     Service     @relation(fields: [service_id], references: [id])
+
+  @@unique([appointment_id, service_id])
+  @@map("appointment_services")
+}
+
+enum Porte {
+  PEQUENO
+  MEDIO
+  GRANDE
+}
+
+enum Status {
+  AGENDADO
+  EM_ANDAMENTO
+  FINALIZADO
+}
