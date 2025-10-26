@@ -7,14 +7,50 @@ import { Calendar, Car, Clock, Star, Plus, List, Settings, Bell, Phone, Gift, Ar
 import Link from 'next/link';
 
 export default function ClienteHome() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, token } = useAuth();
   const router = useRouter();
+  const [carsCount, setCarsCount] = useState(0);
+  const [appointmentsCount, setAppointmentsCount] = useState(0);
+  const [loadingCounts, setLoadingCounts] = useState(true);
 
   useEffect(() => {
     if (!isLoading && !user) {
       router.push('/cliente/login');
     }
   }, [user, isLoading, router]);
+
+  useEffect(() => {
+    const loadCounts = async () => {
+      if (!user || !token) return;
+      
+      try {
+        const [carsResponse, appointmentsResponse] = await Promise.all([
+          fetch('http://localhost:3001/cars/my-cars', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }),
+          fetch('http://localhost:3001/appointments/my-appointments', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+        ]);
+        
+        if (carsResponse.ok) {
+          const carsData = await carsResponse.json();
+          setCarsCount(carsData.length);
+        }
+        
+        if (appointmentsResponse.ok) {
+          const appointmentsData = await appointmentsResponse.json();
+          setAppointmentsCount(appointmentsData.length);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar contadores:', error);
+      } finally {
+        setLoadingCounts(false);
+      }
+    };
+
+    loadCounts();
+  }, [user, token]);
 
   if (isLoading || !user) {
     return (
@@ -78,14 +114,14 @@ export default function ClienteHome() {
                     <Car className="h-6 w-6 text-blue-600" />
                     <span className="text-base font-semibold text-gray-700">Veículos</span>
                   </div>
-                  <span className="text-3xl font-bold text-blue-600">2</span>
+                  <span className="text-3xl font-bold text-blue-600">{loadingCounts ? '...' : carsCount}</span>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-purple-50 rounded-xl">
                   <div className="flex items-center gap-4">
                     <Calendar className="h-6 w-6 text-purple-600" />
                     <span className="text-base font-semibold text-gray-700">Agendamentos</span>
                   </div>
-                  <span className="text-3xl font-bold text-purple-600">5</span>
+                  <span className="text-3xl font-bold text-purple-600">{loadingCounts ? '...' : appointmentsCount}</span>
                 </div>
               </div>
             </div>
@@ -94,21 +130,47 @@ export default function ClienteHome() {
           {/* Coluna 2 - Ações Rápidas */}
           <div className="lg:col-span-8 space-y-6">
             {/* Botão Principal */}
-            <Link href="/cliente/agendar" className="block">
-              <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-3xl p-10 shadow-xl hover:shadow-2xl transition-all hover:scale-[1.01] border-2 border-blue-400">
-                <div className="flex items-center justify-between mb-5">
-                  <div>
-                    <p className="text-lg text-blue-100 font-medium mb-2">🔥 Agendar Serviço</p>
-                    <h3 className="text-4xl font-bold text-white mb-3">Novo Agendamento</h3>
-                    <p className="text-blue-100 text-base">Escolha data, horário e serviço desejado</p>
+            <Link href="/cliente/agendar" className="block group">
+              <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-3xl p-8 md:p-10 shadow-2xl hover:shadow-blue-500/50 transition-all duration-300 hover:scale-[1.02] overflow-hidden">
+                {/* Efeito de brilho animado */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                
+                {/* Decoração de fundo */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+                
+                <div className="relative z-10">
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="bg-yellow-400/20 backdrop-blur-sm px-3 py-1.5 rounded-full border border-yellow-300/30">
+                          <span className="text-yellow-300 text-sm font-bold flex items-center gap-1">
+                            🔥 Agendar Serviço
+                          </span>
+                        </div>
+                      </div>
+                      <h3 className="text-3xl md:text-5xl font-black text-white mb-2 leading-tight tracking-tight">
+                        Novo Agendamento
+                      </h3>
+                      <p className="text-blue-100 text-sm md:text-base mb-6">Escolha data, horário e serviço desejado</p>
+                      
+                      {/* Botão call-to-action */}
+                      <div className="inline-flex items-center gap-3 bg-white/20 backdrop-blur-sm px-6 py-3 rounded-xl hover:bg-white/30 transition-all group-hover:translate-x-2 border border-white/30">
+                        <span className="text-white font-semibold text-base">Clique para começar</span>
+                        <ArrowRight className="h-5 w-5 text-white group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+                    
+                    {/* Ícone flutuante */}
+                    <div className="hidden md:flex items-center justify-center">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-white/30 rounded-full animate-ping"></div>
+                        <div className="relative bg-white p-6 rounded-full shadow-2xl transform group-hover:rotate-90 transition-transform duration-500">
+                          <Plus className="h-12 w-12 text-blue-600" />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-white p-5 rounded-full shadow-lg">
-                    <Plus className="h-10 w-10 text-blue-600" />
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 text-blue-100 text-lg font-medium">
-                  <span>Clique para começar</span>
-                  <span className="text-3xl">→</span>
                 </div>
               </div>
             </Link>
@@ -129,7 +191,7 @@ export default function ClienteHome() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-blue-600">
                       <Car className="h-5 w-5" />
-                      <span className="text-base font-semibold">2 cadastrados</span>
+                      <span className="text-base font-semibold">{loadingCounts ? '...' : `${carsCount} cadastrado${carsCount !== 1 ? 's' : ''}`}</span>
                     </div>
                     <span className="text-blue-500 text-3xl font-bold">›</span>
                   </div>
@@ -150,7 +212,7 @@ export default function ClienteHome() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-purple-600">
                       <Calendar className="h-5 w-5" />
-                      <span className="text-base font-semibold">5 registros</span>
+                      <span className="text-base font-semibold">{loadingCounts ? '...' : `${appointmentsCount} registro${appointmentsCount !== 1 ? 's' : ''}`}</span>
                     </div>
                     <span className="text-purple-500 text-3xl font-bold">›</span>
                   </div>
@@ -163,35 +225,53 @@ export default function ClienteHome() {
         {/* Seção de Notificações e Promoções */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {/* Próximo Agendamento */}
-          <div className="lg:col-span-2 bg-gradient-to-br from-green-500 to-green-600 rounded-3xl shadow-lg p-8 text-white">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-white/20 p-3 rounded-xl">
-                <Calendar className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold">Próximo Agendamento</h3>
-                <p className="text-green-100 text-sm">Seu agendamento mais próximo</p>
-              </div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-sm text-green-100 mb-1">Data e Hora</p>
-                  <p className="text-2xl font-bold">15/11 - 14:00</p>
+          <div className="lg:col-span-2 relative group">
+            <div className="relative bg-gradient-to-br from-green-500 via-green-600 to-green-700 rounded-3xl shadow-2xl p-8 overflow-hidden">
+              {/* Efeito de brilho animado */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+              
+              {/* Decoração de fundo */}
+              <div className="absolute top-0 right-0 w-48 h-48 bg-green-400/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+              
+              <div className="relative z-10">
+                {/* Header */}
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-white/30 rounded-full animate-ping"></div>
+                    <div className="relative bg-white/20 backdrop-blur-sm p-4 rounded-xl border border-white/30">
+                      <Calendar className="h-7 w-7 text-white" />
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-2xl md:text-3xl font-black text-white">Próximo Agendamento</h3>
+                    <p className="text-green-100 text-sm">Seu agendamento mais próximo</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-green-100 mb-1">Veículo</p>
-                  <p className="text-lg font-semibold">Honda Civic</p>
+
+                {/* Card de conteúdo */}
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-5">
+                    <div>
+                      <p className="text-xs text-green-100 mb-2 font-medium uppercase tracking-wide">Data e Hora</p>
+                      <p className="text-3xl font-black text-white">15/11 - 14:00</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-green-100 mb-2 font-medium uppercase tracking-wide">Veículo</p>
+                      <p className="text-xl font-bold text-white">Honda Civic</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-5 border-t border-white/20 gap-3">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20">
+                      <span className="text-sm font-bold text-white">Lavagem Completa</span>
+                    </div>
+                    <Link href="/cliente/agendamentos" className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-lg border border-white/20 transition-all group-hover:translate-x-1">
+                      <span className="text-sm font-bold text-white">Ver detalhes</span>
+                      <ArrowRight className="h-4 w-4 text-white" />
+                    </Link>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">
-                  Lavagem Completa
-                </div>
-                <Link href="/cliente/agendamentos" className="ml-auto flex items-center gap-2 text-white hover:text-green-100 transition-colors">
-                  <span className="text-sm font-medium">Ver detalhes</span>
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
               </div>
             </div>
           </div>

@@ -55,6 +55,27 @@ export class CarsService {
     }));
   }
 
+  async findByUser(userId: string): Promise<CarResponseDto[]> {
+    const cars = await this.prisma.car.findMany({
+      where: { user_id: userId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            nome: true,
+            telefone: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return cars.map(car => ({
+      ...car,
+      porte: car.porte as Porte,
+    }));
+  }
+
   async findOne(id: string): Promise<CarResponseDto> {
     const car = await this.prisma.car.findUnique({
       where: { id },
@@ -77,18 +98,6 @@ export class CarsService {
       ...car,
       porte: car.porte as Porte,
     };
-  }
-
-  async findByUser(userId: string): Promise<CarResponseDto[]> {
-    const cars = await this.prisma.car.findMany({
-      where: { user_id: userId },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return cars.map(car => ({
-      ...car,
-      porte: car.porte as Porte,
-    }));
   }
 
   async update(id: string, updateCarDto: UpdateCarDto): Promise<CarResponseDto> {

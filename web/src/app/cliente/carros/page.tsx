@@ -42,6 +42,7 @@ export default function CarrosPage() {
         
         if (response.ok) {
           const data = await response.json();
+          console.log('Carros retornados pelo backend:', data);
           setCars(data);
         }
       } catch (error) {

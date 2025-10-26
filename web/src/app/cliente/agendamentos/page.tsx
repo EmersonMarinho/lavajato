@@ -7,14 +7,53 @@ import { Calendar, Clock, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AgendamentosPage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, token } = useAuth();
   const router = useRouter();
+  const [selectedFilter, setSelectedFilter] = useState('TODOS');
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [loadingAppointments, setLoadingAppointments] = useState(true);
 
   useEffect(() => {
     if (!isLoading && !user) {
       router.push('/cliente/login');
     }
   }, [user, isLoading, router]);
+
+  useEffect(() => {
+    const loadAppointments = async () => {
+      if (!user || !token) return;
+      
+      try {
+        const response = await fetch('http://localhost:3001/appointments/my-appointments', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Agendamentos retornados pelo backend:', data);
+          // Adaptar dados do backend para o formato esperado
+          const adaptedData = data.map((apt: any) => ({
+            id: apt.id,
+            data: apt.data,
+            hora: apt.hora,
+            status: apt.status,
+            carro: `${apt.car?.modelo || 'N/A'} - ${apt.car?.placa || 'N/A'}`,
+            unidade: apt.unit?.nome || 'N/A',
+            preco: apt.preco_final || 0
+          }));
+          setAppointments(adaptedData);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar agendamentos:', error);
+      } finally {
+        setLoadingAppointments(false);
+      }
+    };
+
+    loadAppointments();
+  }, [user, token]);
 
   if (isLoading || !user) {
     return (
@@ -23,37 +62,6 @@ export default function AgendamentosPage() {
       </div>
     );
   }
-  const [selectedFilter, setSelectedFilter] = useState('TODOS');
-  
-  const mockAppointments = [
-    { 
-      id: '1', 
-      data: '2025-10-27', 
-      hora: '10:00', 
-      status: 'AGENDADO',
-      carro: 'Fiat Uno - ABC-1234',
-      unidade: 'Unidade Centro',
-      preco: 45.00
-    },
-    { 
-      id: '2', 
-      data: '2025-10-28', 
-      hora: '14:00', 
-      status: 'EM_ANDAMENTO',
-      carro: 'Honda Civic - XYZ-5678',
-      unidade: 'Unidade Zona Sul',
-      preco: 75.00
-    },
-    { 
-      id: '3', 
-      data: '2025-10-20', 
-      hora: '09:00', 
-      status: 'FINALIZADO',
-      carro: 'Fiat Uno - ABC-1234',
-      unidade: 'Unidade Centro',
-      preco: 30.00
-    },
-  ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -113,7 +121,21 @@ export default function AgendamentosPage() {
       </div>
 
       <div className="p-4 space-y-3">
-        {mockAppointments.map(apt => (
+        {loadingAppointments ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Carregando agendamentos...</p>
+          </div>
+        ) : appointments.length === 0 ? (
+          <div className="text-center py-12">
+            <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-600 text-lg">Você ainda não tem agendamentos</p>
+            <Link href="/cliente/agendar" className="inline-block mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              Agendar Serviço
+            </Link>
+          </div>
+        ) : (
+          appointments.map(apt => (
           <div key={apt.id} className="bg-white rounded-lg shadow p-4">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -142,7 +164,8 @@ export default function AgendamentosPage() {
               <p className="text-gray-500">{apt.unidade}</p>
             </div>
           </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

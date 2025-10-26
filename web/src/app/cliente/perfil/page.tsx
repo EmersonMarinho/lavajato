@@ -1,11 +1,33 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 import { User, Phone, Star, LogOut, Edit, Settings, HelpCircle, Info, Shield, Bell, Camera } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PerfilPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/cliente/login');
+    }
+  }, [user, isLoading, router]);
+
+  const handleLogout = () => {
+    logout();
+    router.push('/cliente/login');
+  };
+
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 md:pb-6">
@@ -141,8 +163,8 @@ export default function PerfilPage() {
 
         {/* Logout Button */}
         <button
-          onClick={() => logout()}
-          className="w-full bg-red-600 text-white rounded-2xl py-4 flex items-center justify-center gap-3 font-semibold text-lg hover:bg-red-700 transition-colors shadow-lg hover:shadow-xl"
+          onClick={handleLogout}
+          className="w-full bg-red-600 text-white rounded-2xl py-4 flex items-center justify-center gap-3 font-semibold text-lg hover:bg-red-700 active:bg-red-800 transition-colors shadow-lg hover:shadow-xl touch-manipulation"
         >
           <LogOut className="h-6 w-6" />
           Sair da Conta

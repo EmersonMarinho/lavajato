@@ -35,21 +35,28 @@ export class AuthService {
 
   async verifyAndLogin(phoneAuthDto: PhoneAuthDto): Promise<any> {
     try {
+      console.log('verifyAndLogin chamado com:', phoneAuthDto);
+      
       // Em produção, aqui você verificaria o código com Firebase Auth
       // Por enquanto, vamos aceitar qualquer código para demonstração
       if (phoneAuthDto.verificationCode !== '123456') {
+        console.log('Código inválido:', phoneAuthDto.verificationCode);
         throw new UnauthorizedException('Código de verificação inválido');
       }
 
+      console.log('Código válido, buscando usuário:', phoneAuthDto.phoneNumber);
+      
       // Buscar usuário pelo telefone
       let user = await this.prisma.user.findUnique({
         where: { telefone: phoneAuthDto.phoneNumber },
-      });
+      }) as any;
+      
+      console.log('Usuário encontrado:', user);
 
-      // Se não existir, criar novo usuário
+      // Se não existir, criar usuário básico
       if (!user) {
         const createUserDto: CreateUserDto = {
-          nome: `Usuário ${phoneAuthDto.phoneNumber.slice(-4)}`,
+          nome: 'Usuário',
           telefone: phoneAuthDto.phoneNumber,
           endereco: 'Endereço não informado',
           bairro: 'Bairro não informado',
@@ -63,8 +70,36 @@ export class AuthService {
           data: createUserDto,
         });
       }
+      
+      console.log('Verificando se precisa completar cadastro...');
+      console.log('data_nascimento:', user.data_nascimento);
+      console.log('tipo:', user.tipo);
+      
+      // Verificar se o usuário tem cadastro completo
+      const needsCompleteRegistration = !user.data_nascimento || !user.tipo;
+      
+      console.log('needsCompleteRegistration:', needsCompleteRegistration);
+      
+      if (needsCompleteRegistration) {
+        console.log('Retornando para completar cadastro');
+        // Retornar informação de que precisa completar cadastro
+        const payload = { sub: user.id, telefone: user.telefone };
+        const accessToken = this.jwtService.sign(payload);
+        
+        return {
+          needsCompleteRegistration: true,
+          accessToken,
+          user: {
+            id: user.id,
+            nome: user.nome,
+            telefone: user.telefone,
+            pontos_fidelidade: user.pontos_fidelidade,
+          },
+        };
+      }
 
-      // Gerar token JWT
+      // Cadastro completo, fazer login normalmente
+      console.log('Cadastro completo, retornando token de acesso');
       const payload = { sub: user.id, telefone: user.telefone };
       const accessToken = this.jwtService.sign(payload);
 
@@ -78,6 +113,7 @@ export class AuthService {
         },
       };
     } catch (error) {
+      console.error('Erro em verifyAndLogin:', error);
       if (error instanceof UnauthorizedException) {
         throw error;
       }
@@ -95,5 +131,30 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  async completeRegistration(userId: string, completeData: { nome: string; dataNascimento: string; tipo: string }): Promise<any> {
+    try {
+      const updatedUser = await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          nome: completeData.nome,
+          data_nascimento: new Date(completeData.dataNascimento),
+          tipo: completeData.tipo,
+        } as any,
+      });
+
+      return {
+        accessToken: this.jwtService.sign({ sub: updatedUser.id, telefone: updatedUser.telefone }),
+        user: {
+          id: updatedUser.id,
+          nome: updatedUser.nome,
+          telefone: updatedUser.telefone,
+          pontos_fidelidade: updatedUser.pontos_fidelidade,
+        },
+      };
+    } catch (error) {
+      throw new BadRequestException('Erro ao completar cadastro');
+    }
   }
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { Car, Building2, Wrench, CheckCircle, Info, MapPin, Home } from 'lucide-react';
+import { Car, Building2, Wrench, CheckCircle, Info, MapPin, Home, Calendar } from 'lucide-react';
 
 export default function AgendarPage() {
   const { user, isLoading, token } = useAuth();
@@ -16,6 +16,10 @@ export default function AgendarPage() {
   const [selectedUnit, setSelectedUnit] = useState<any>(null);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [tipoEntrega, setTipoEntrega] = useState<'BALCAO' | 'LEVA_TRAS' | null>(null);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
+  const [units, setUnits] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
   
   // Função para voltar para etapa anterior
   const voltarEtapa = () => {
@@ -122,6 +126,54 @@ export default function AgendarPage() {
     loadCars();
   }, [user, token]);
 
+  useEffect(() => {
+    const loadUnits = async () => {
+      try {
+        const authToken = token || localStorage.getItem('auth_token');
+        if (!authToken) return;
+        
+        const response = await fetch('http://localhost:3001/units', {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setUnits(data);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar unidades:', error);
+      }
+    };
+
+    loadUnits();
+  }, [token]);
+
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        const authToken = token || localStorage.getItem('auth_token');
+        if (!authToken) return;
+        
+        const response = await fetch('http://localhost:3001/services', {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setServices(data);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar serviços:', error);
+      }
+    };
+
+    loadServices();
+  }, [token]);
+
   if (isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -130,45 +182,11 @@ export default function AgendarPage() {
     );
   }
 
-  // Dados mock (serão substituídos por chamadas à API)
-  const mockUnits = [
-    { id: '1', nome: 'Unidade Centro', endereco: 'Rua das Flores, 123' },
-    { id: '2', nome: 'Unidade Zona Sul', endereco: 'Av. Principal, 456' },
-  ];
+  // Dados mock removidos - agora usando dados do backend
 
-  const mockServices = [
-    { 
-      id: '1', 
-      nome: 'Lavagem Simples', 
-      preco: 25.00,
-      descricao: 'Lavagem externa com água e sabão. Ideal para manutenção rápida.',
-      exclusivos: ['2'] // Não pode combinar com Lavagem Completa
-    },
-    { 
-      id: '2', 
-      nome: 'Lavagem Completa', 
-      preco: 45.00,
-      descricao: 'Lavagem externa completa com cera, limpeza de rodas e secagem. Inclui tudo da lavagem simples.',
-      exclusivos: ['1'] // Não pode combinar com Lavagem Simples
-    },
-    { 
-      id: '3', 
-      nome: 'Cera', 
-      preco: 30.00,
-      descricao: 'Aplicação de cera automotiva para proteção e brilho da pintura.',
-      exclusivos: []
-    },
-    { 
-      id: '4', 
-      nome: 'Aspiração', 
-      preco: 15.00,
-      descricao: 'Limpeza completa do interior com aspirador profissional.',
-      exclusivos: []
-    },
-  ];
 
   const toggleService = (serviceId: string) => {
-    const service = mockServices.find(s => s.id === serviceId);
+    const service = services.find(s => s.id === serviceId);
     
     setSelectedServices(prev => {
       if (prev.includes(serviceId)) {
@@ -197,6 +215,27 @@ export default function AgendarPage() {
         return;
       }
 
+      // Validar que todos os dados necessários estão preenchidos
+      if (!selectedCar) {
+        alert('Por favor, selecione um veículo.');
+        return;
+      }
+
+      if (!selectedUnit) {
+        alert('Por favor, selecione a unidade do lavajato.');
+        return;
+      }
+
+      if (selectedServices.length === 0) {
+        alert('Por favor, selecione pelo menos um serviço.');
+        return;
+      }
+
+      if (!selectedDate || !selectedTime) {
+        alert('Por favor, selecione a data e hora do agendamento.');
+        return;
+      }
+
       // Formatar endereço para string
       const enderecoCompleto = tipoEntrega === 'LEVA_TRAS' 
         ? `${endereco.rua}, ${endereco.numero}${endereco.complemento ? ` - ${endereco.complemento}` : ''}, ${endereco.bairro}, ${endereco.cidade} - CEP: ${endereco.cep}`
@@ -205,9 +244,9 @@ export default function AgendarPage() {
       const agendamentoData = {
         user_id: authUser.id,
         car_id: selectedCar.id,
-        unit_id: tipoEntrega === 'BALCAO' ? selectedUnit.id : mockUnits[0].id, // Se for leva e traz, pode usar unidade padrão
-        data: new Date().toISOString(),
-        hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        unit_id: selectedUnit.id, // Sempre usa a unidade selecionada
+        data: selectedDate ? new Date(selectedDate).toISOString() : new Date().toISOString(),
+        hora: selectedTime || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         service_ids: selectedServices,
         inclui_busca_entrega: tipoEntrega === 'LEVA_TRAS',
         endereco_busca: enderecoCompleto,
@@ -256,9 +295,11 @@ export default function AgendarPage() {
           <h2 className="text-lg md:text-2xl lg:text-3xl font-bold text-white leading-tight">
             {step === 1 ? 'Novo Agendamento' :
              step === 2 ? 'Tipo de Entrega' :
-             step === 3 ? (tipoEntrega === 'LEVA_TRAS' ? 'Seu Endereço' : 'Escolha o Lavajato') :
-             step === 4 ? 'Selecione Serviços' :
-             step === 5 ? 'Confirme' : ''}
+             step === 3 ? 'Escolha o Lavajato' :
+             step === 4 ? (tipoEntrega === 'LEVA_TRAS' ? 'Seu Endereço' : 'Selecione Serviços') :
+             step === 5 ? 'Selecione Serviços' :
+             step === 6 ? 'Data e Horário' :
+             step === 7 ? 'Confirme' : ''}
           </h2>
         </div>
         
@@ -266,16 +307,18 @@ export default function AgendarPage() {
         <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 md:p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs md:text-sm text-white font-medium">
-              {step === 1 && 'Passo 1 de 5'}
-              {step === 2 && 'Passo 2 de 5'}
-              {step === 3 && 'Passo 3 de 5'}
-              {step === 4 && 'Passo 4 de 5'}
-              {step === 5 && 'Passo 5 de 5'}
+              {step === 1 && 'Passo 1 de 7'}
+              {step === 2 && 'Passo 2 de 7'}
+              {step === 3 && 'Passo 3 de 7'}
+              {step === 4 && 'Passo 4 de 7'}
+              {step === 5 && 'Passo 5 de 7'}
+              {step === 6 && 'Passo 6 de 7'}
+              {step === 7 && 'Passo 7 de 7'}
             </span>
-            <span className="text-xs md:text-sm text-white font-bold">{step}/5</span>
+            <span className="text-xs md:text-sm text-white font-bold">{step}/7</span>
           </div>
           <div className="w-full bg-white/30 rounded-full h-1.5 md:h-2">
-            <div className="bg-white h-1.5 md:h-2 rounded-full transition-all shadow-lg" style={{ width: `${(step / 5) * 100}%` }} />
+            <div className="bg-white h-1.5 md:h-2 rounded-full transition-all shadow-lg" style={{ width: `${(step / 7) * 100}%` }} />
           </div>
         </div>
       </div>
@@ -379,8 +422,41 @@ export default function AgendarPage() {
           </div>
         )}
 
-        {/* Step 3: Endereço OU Unidade */}
-        {step === 3 && tipoEntrega === 'LEVA_TRAS' && (
+        {/* Step 3: Selecionar Unidade (sempre) */}
+        {step === 3 && (
+          <div className="space-y-3 md:space-y-4">
+            <h3 className="font-bold text-gray-900 text-lg md:text-xl mb-3 md:mb-4">Escolha o Lavajato</h3>
+            {units.length === 0 ? (
+              <div className="bg-white rounded-xl md:rounded-2xl shadow-md border border-gray-100 p-6 md:p-8 text-center">
+                <p className="text-gray-500 text-sm md:text-base">Carregando unidades...</p>
+              </div>
+            ) : (
+              units.map(unit => (
+              <button
+                key={unit.id}
+                onClick={() => {
+                  setSelectedUnit(unit);
+                  // Se for leva e traz, vai para step 4 (endereço), senão vai para step 5 (serviços)
+                  setStep(tipoEntrega === 'LEVA_TRAS' ? 4 : 5);
+                }}
+                className="w-full bg-white rounded-xl md:rounded-2xl shadow-md border border-gray-100 p-4 md:p-5 flex items-start gap-3 md:gap-4 active:shadow-lg active:border-green-300 active:scale-[0.98] transition-all text-left cursor-pointer group touch-manipulation"
+              >
+                <div className="bg-green-100 p-3 md:p-4 rounded-lg md:rounded-xl group-active:bg-green-200 transition-colors flex-shrink-0">
+                  <Building2 className="h-6 w-6 md:h-7 md:w-7 text-green-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-gray-900 text-base md:text-lg truncate">{unit.nome}</h4>
+                  <p className="text-xs md:text-sm text-gray-900 truncate">{unit.endereco}</p>
+                </div>
+                <div className="text-green-600 text-xl md:text-2xl font-bold flex-shrink-0">›</div>
+              </button>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Step 4: Endereço (só se Leva e Traz) */}
+        {step === 4 && tipoEntrega === 'LEVA_TRAS' && (
           <div className="space-y-4">
             <h3 className="font-bold text-gray-900 text-xl mb-4">Onde entregar o veículo?</h3>
             
@@ -431,7 +507,7 @@ export default function AgendarPage() {
                 {/* Botão para continuar com endereço favorito selecionado */}
                 {enderecoSelecionadoId && (
                   <button
-                    onClick={() => setStep(4)}
+                    onClick={() => setStep(5)}
                     className="w-full bg-blue-600 text-white rounded-2xl py-4 font-semibold text-lg hover:bg-blue-700 transition-colors shadow-lg"
                   >
                     Continuar
@@ -663,7 +739,7 @@ export default function AgendarPage() {
                   )}
 
                   <button
-                    onClick={() => setStep(4)}
+                    onClick={() => setStep(5)}
                     disabled={!endereco.rua || !endereco.numero || !endereco.bairro || !endereco.cidade}
                     className="w-full bg-blue-600 text-white rounded-2xl py-4 font-semibold text-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors shadow-lg"
                   >
@@ -675,37 +751,16 @@ export default function AgendarPage() {
           </div>
         )}
 
-        {/* Step 3: Selecionar Unidade (se Buscar no Lavajato) */}
-        {step === 3 && tipoEntrega === 'BALCAO' && (
-          <div className="space-y-4">
-            <h3 className="font-bold text-gray-900 text-xl mb-4">Escolha o Lavajato</h3>
-            {mockUnits.map(unit => (
-              <button
-                key={unit.id}
-                onClick={() => {
-                  setSelectedUnit(unit);
-                  setStep(4); // Agora vai para Serviços
-                }}
-                className="w-full bg-white rounded-2xl shadow-md border border-gray-100 p-5 flex items-start gap-4 hover:shadow-lg hover:border-green-300 hover:scale-[1.02] transition-all text-left cursor-pointer group"
-              >
-                <div className="bg-green-100 p-4 rounded-xl group-hover:bg-green-200 transition-colors">
-                  <Building2 className="h-7 w-7 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-bold text-gray-900 text-lg">{unit.nome}</h4>
-                  <p className="text-sm text-gray-900">{unit.endereco}</p>
-                </div>
-                <div className="text-green-600 text-2xl font-bold group-hover:translate-x-1 transition-transform">›</div>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Step 4: Selecionar Serviços */}
-        {step === 4 && (
+        {/* Step 5: Selecionar Serviços */}
+        {step === 5 && (
           <div className="space-y-4">
             <h3 className="font-bold text-gray-900 text-xl mb-4">Selecione os Serviços</h3>
-            {mockServices.map(service => (
+            {services.length === 0 ? (
+              <div className="bg-white rounded-xl md:rounded-2xl shadow-md border border-gray-100 p-6 md:p-8 text-center">
+                <p className="text-gray-500 text-sm md:text-base">Carregando serviços...</p>
+              </div>
+            ) : (
+              services.map(service => (
               <div key={service.id}>
                 <div className="relative">
                   <button
@@ -726,17 +781,17 @@ export default function AgendarPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h4 className="font-bold text-gray-900 text-lg">{service.nome}</h4>
-                        <button
+                        <span
                           onClick={(e) => {
                             e.stopPropagation();
                             setShowInfo(showInfo === service.id ? null : service.id);
                           }}
-                          className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                          className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors cursor-pointer"
                         >
                           <Info className="h-4 w-4" />
-                        </button>
+                        </span>
                       </div>
-                      <p className="text-sm text-gray-900 font-semibold">R$ {service.preco.toFixed(2)}</p>
+                      <p className="text-sm text-gray-900 font-semibold">R$ {service.preco_base.toFixed(2)}</p>
                     </div>
                     {selectedServices.includes(service.id) && (
                       <div className="bg-blue-600 p-2 rounded-full">
@@ -747,13 +802,14 @@ export default function AgendarPage() {
                 </div>
                 {showInfo === service.id && (
                   <div className="mt-2 bg-blue-50 border border-blue-200 rounded-xl p-4">
-                    <p className="text-sm text-gray-900 font-medium">{service.descricao}</p>
+                    <p className="text-sm text-gray-900 font-medium">Serviço disponível</p>
                   </div>
                 )}
               </div>
-            ))}
+              ))
+            )}
             <button
-              onClick={() => setStep(5)}
+              onClick={() => setStep(6)}
               disabled={selectedServices.length === 0}
               className="w-full bg-blue-600 text-white rounded-2xl py-4 font-semibold text-lg disabled:bg-gray-300 disabled:cursor-not-allowed mt-6 hover:bg-blue-700 transition-colors shadow-lg"
             >
@@ -762,8 +818,50 @@ export default function AgendarPage() {
           </div>
         )}
 
-        {/* Step 5: Confirmar */}
-        {step === 5 && (
+        {/* Step 6: Selecionar Data e Hora */}
+        {step === 6 && (
+          <div className="space-y-4">
+            <h3 className="font-bold text-gray-900 text-lg md:text-xl mb-3 md:mb-4">Escolha Data e Hora</h3>
+            
+            <div className="bg-white rounded-xl md:rounded-2xl shadow-md border border-gray-100 p-4 md:p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Data do Agendamento
+                </label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full px-3 py-2.5 md:px-4 md:py-3 border border-gray-300 rounded-lg md:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 text-sm md:text-base touch-manipulation"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Horário
+                </label>
+                <input
+                  type="time"
+                  value={selectedTime}
+                  onChange={(e) => setSelectedTime(e.target.value)}
+                  className="w-full px-3 py-2.5 md:px-4 md:py-3 border border-gray-300 rounded-lg md:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 text-sm md:text-base touch-manipulation"
+                />
+              </div>
+
+              <button
+                onClick={() => setStep(7)}
+                disabled={!selectedDate || !selectedTime}
+                className="w-full bg-blue-600 text-white rounded-xl md:rounded-2xl py-3 md:py-4 font-semibold text-base md:text-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-lg"
+              >
+                Continuar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 7: Confirmar */}
+        {step === 7 && (
           <div className="space-y-4">
             <h3 className="font-bold text-gray-900 text-xl mb-4">Confirme seu Agendamento</h3>
             
@@ -775,16 +873,16 @@ export default function AgendarPage() {
               <p className="text-gray-900 text-lg">{selectedCar?.modelo} - {selectedCar?.placa}</p>
             </div>
 
-            {tipoEntrega === 'BALCAO' ? (
-              <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
-                <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-green-600" />
-                  Lavajato
-                </h4>
-                <p className="text-gray-900 text-lg mb-1">{selectedUnit?.nome}</p>
-                <p className="text-sm text-gray-700">{selectedUnit?.endereco}</p>
-              </div>
-            ) : (
+            <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
+              <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-green-600" />
+                Lavajato
+              </h4>
+              <p className="text-gray-900 text-lg mb-1">{selectedUnit?.nome || 'Não selecionado'}</p>
+              <p className="text-sm text-gray-700">{selectedUnit?.endereco || 'Por favor, selecione uma unidade'}</p>
+            </div>
+
+            {tipoEntrega === 'LEVA_TRAS' && (
               <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
                 <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
                   <Home className="h-5 w-5 text-green-600" />
@@ -807,16 +905,28 @@ export default function AgendarPage() {
 
             <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
               <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-blue-600" />
+                Data e Horário
+              </h4>
+              <p className="text-gray-900 text-lg">
+                {selectedDate && selectedTime 
+                  ? `${new Date(selectedDate).toLocaleDateString('pt-BR')} às ${selectedTime}`
+                  : 'Não informado'}
+              </p>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
+              <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <Wrench className="h-5 w-5 text-purple-600" />
                 Serviços
               </h4>
               <div className="space-y-3">
                 {selectedServices.map(serviceId => {
-                  const service = mockServices.find(s => s.id === serviceId);
+                  const service = services.find(s => s.id === serviceId);
                   return service ? (
                     <div key={serviceId} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
                       <span className="text-gray-900">{service.nome}</span>
-                      <span className="font-bold text-gray-900">R$ {service.preco.toFixed(2)}</span>
+                      <span className="font-bold text-gray-900">R$ {service.preco_base.toFixed(2)}</span>
                     </div>
                   ) : null;
                 })}
@@ -829,8 +939,8 @@ export default function AgendarPage() {
                 <span className="text-2xl font-bold text-blue-600">
                   R$ {(
                     selectedServices.reduce((total, serviceId) => {
-                      const service = mockServices.find(s => s.id === serviceId);
-                      return total + (service?.preco || 0);
+                      const service = services.find(s => s.id === serviceId);
+                      return total + (service?.preco_base || 0);
                     }, 0) + (tipoEntrega === 'LEVA_TRAS' ? 15 : 0)
                   ).toFixed(2)}
                 </span>
