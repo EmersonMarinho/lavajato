@@ -14,12 +14,16 @@ export class AppointmentsService {
     private readonly servicesService: ServicesService,
     private readonly configService: ConfigService,
   ) {
-    // Inicializar cliente Twilio
+    // Inicializar cliente Twilio apenas se as credenciais forem válidas
     const accountSid = this.configService.get<string>('TWILIO_ACCOUNT_SID');
     const authToken = this.configService.get<string>('TWILIO_AUTH_TOKEN');
     
-    if (accountSid && authToken) {
-      this.twilioClient = twilio(accountSid, authToken);
+    if (accountSid && authToken && accountSid.startsWith('AC')) {
+      try {
+        this.twilioClient = twilio(accountSid, authToken);
+      } catch (error) {
+        console.log('Twilio não configurado corretamente, continuando sem notificações');
+      }
     }
   }
 
@@ -316,19 +320,8 @@ export class AppointmentsService {
   }
 
   private calculatePickupDeliveryCost(user: any, unit: any): number {
-    // Cálculo base do custo de busca e entrega
-    const custoBase = 25.00; // Custo base por viagem
-    
-    // Adicional por distância (simulado - em produção usar API de geolocalização)
-    const custoDistancia = 2.50; // R$ 2,50 por km
-    
-    // Distância estimada (simulada)
-    const distanciaEstimada = 5; // 5km como exemplo
-    
-    // Custo total: base + (distância × custo por km) × 2 (ida e volta)
-    const custoTotal = custoBase + (distanciaEstimada * custoDistancia) * 2;
-    
-    return Math.round(custoTotal * 100) / 100; // Arredondar para 2 casas decimais
+    // Custo fixo de leva e traz: R$ 15,00
+    return 15.00;
   }
 
   private async sendWhatsAppNotification(appointmentId: string): Promise<void> {

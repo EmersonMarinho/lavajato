@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from '../dto/user.dto';
+import { CreateEnderecoFavoritoDto, EnderecoFavoritoResponseDto } from '../dto/endereco-favorito.dto';
 
 @Injectable()
 export class UsersService {
@@ -85,5 +86,44 @@ export class UsersService {
     });
 
     return updatedUser;
+  }
+
+  // Endereços Favoritos
+  async createEnderecoFavorito(userId: string, createDto: CreateEnderecoFavoritoDto): Promise<EnderecoFavoritoResponseDto> {
+    await this.findOne(userId);
+
+    const endereco = await this.prisma.enderecoFavorito.create({
+      data: {
+        user_id: userId,
+        ...createDto,
+      },
+    });
+
+    return endereco;
+  }
+
+  async getEnderecosFavoritos(userId: string): Promise<EnderecoFavoritoResponseDto[]> {
+    await this.findOne(userId);
+
+    return this.prisma.enderecoFavorito.findMany({
+      where: { user_id: userId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async deleteEnderecoFavorito(userId: string, enderecoId: string): Promise<void> {
+    await this.findOne(userId);
+
+    const endereco = await this.prisma.enderecoFavorito.findUnique({
+      where: { id: enderecoId },
+    });
+
+    if (!endereco || endereco.user_id !== userId) {
+      throw new NotFoundException('Endereço favorito não encontrado');
+    }
+
+    await this.prisma.enderecoFavorito.delete({
+      where: { id: enderecoId },
+    });
   }
 }

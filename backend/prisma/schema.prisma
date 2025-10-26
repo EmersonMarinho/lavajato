@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -26,8 +26,28 @@ model User {
   // Relacionamentos
   cars        Car[]
   appointments Appointment[]
+  enderecos_favoritos EnderecoFavorito[]
 
   @@map("users")
+}
+
+model EnderecoFavorito {
+  id              String       @id @default(cuid())
+  user_id         String
+  nome            String        // Nome do endereço (ex: Casa, Trabalho)
+  rua             String
+  numero          String
+  complemento     String?
+  bairro          String
+  cidade          String
+  cep             String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relacionamentos
+  user            User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("enderecos_favoritos")
 }
 
 model Car {
@@ -35,7 +55,7 @@ model Car {
   user_id  String
   modelo   String
   placa    String @unique
-  porte    Porte
+  porte    String // 'PEQUENO' | 'MEDIO' | 'GRANDE'
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -78,7 +98,7 @@ model Appointment {
   user_id      String
   car_id       String
   unit_id      String
-  status       Status        @default(AGENDADO)
+  status       String        @default("AGENDADO") // 'AGENDADO' | 'EM_ANDAMENTO' | 'FINALIZADO'
   data         DateTime
   hora         String
   preco_final  Float
@@ -113,14 +133,6 @@ model AppointmentService {
   @@map("appointment_services")
 }
 
-enum Porte {
-  PEQUENO
-  MEDIO
-  GRANDE
-}
-
-enum Status {
-  AGENDADO
-  EM_ANDAMENTO
-  FINALIZADO
-}
+// Enums convertidos para String devido ao uso de SQLite
+// Porte: 'PEQUENO' | 'MEDIO' | 'GRANDE'
+// Status: 'AGENDADO' | 'EM_ANDAMENTO' | 'FINALIZADO'

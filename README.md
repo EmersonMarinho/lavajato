@@ -1,12 +1,12 @@
 # 🚗💧 **Lavajato - Sistema de Agendamento**
 
-Sistema completo de agendamento para lavajatos, desenvolvido com React Native (mobile), Next.js (web) e NestJS (backend).
+Sistema completo de agendamento para lavajatos, desenvolvido com PWA (Progressive Web App) e NestJS (backend).
 
 ## 🚀 **Funcionalidades**
 
-### **Mobile App (React Native + Expo)**
+### **PWA App (Next.js + PWA)**
 
-- 📱 Cadastro e login de usuários
+- 📱 Aplicativo instalável (PWA)
 - 🚗 Gestão de veículos
 - 🏢 Seleção de unidades
 - 🛠️ Catálogo de serviços
@@ -14,15 +14,9 @@ Sistema completo de agendamento para lavajatos, desenvolvido com React Native (m
 - 💳 Sistema de checkout
 - 📍 Serviço de busca e entrega
 - ⭐ Sistema de pontos de fidelidade
-
-### **Web Dashboard (Next.js)**
-
 - 📊 Dashboard administrativo
 - 👥 Gestão de usuários
-- 🚗 Controle de veículos
-- 🏢 Administração de unidades
 - 🛠️ Gestão de serviços
-- 📅 Visualização de agendamentos
 - 📈 Relatórios e analytics
 
 ### **Backend API (NestJS)**
@@ -36,21 +30,15 @@ Sistema completo de agendamento para lavajatos, desenvolvido com React Native (m
 
 ## 🛠️ **Tecnologias Utilizadas**
 
-### **Frontend Mobile**
+### **Frontend PWA**
 
-- React Native 0.79.5
-- Expo SDK 53
-- React Navigation 7
-- React Native Paper
-- TypeScript
-
-### **Frontend Web**
-
-- Next.js 14
+- Next.js 15.4.6
 - React 19
-- Tailwind CSS
+- PWA (next-pwa)
+- Tailwind CSS 4
 - TypeScript
 - React Hook Form
+- Service Worker para funcionalidade offline
 
 ### **Backend**
 
@@ -66,7 +54,6 @@ Sistema completo de agendamento para lavajatos, desenvolvido com React Native (m
 
 - Node.js 18+
 - npm ou yarn
-- Expo CLI
 - PostgreSQL
 
 ### **1. Clone o repositório**
@@ -79,28 +66,22 @@ cd lavajato
 ### **2. Backend**
 
 ```bash
-cd backend
+cd lavajato/backend
 npm install
-cp .env.example .env
+cp env.example .env
 # Configure as variáveis de ambiente
 npm run start:dev
 ```
 
-### **3. Mobile App**
+### **3. PWA App**
 
 ```bash
-cd mobile
-npm install
-npx expo start
-```
-
-### **4. Web Dashboard**
-
-```bash
-cd web
+cd lavajato/web
 npm install
 npm run dev
 ```
+
+O app estará disponível em `http://localhost:3000` e pode ser instalado como PWA no navegador.
 
 ## 🔧 **Configuração de Ambiente**
 
@@ -119,10 +100,10 @@ TWILIO_WHATSAPP_FROM="seu-numero-whatsapp"
 ```
 lavajato/
 ├── backend/          # API NestJS
-├── mobile/           # App React Native
-├── web/              # Dashboard Next.js
-├── prisma/           # Schema do banco
-└── docs/             # Documentação
+├── web/              # PWA Next.js
+│   ├── public/       # Assets e manifest PWA
+│   └── src/          # Código fonte
+└── prisma/           # Schema do banco
 ```
 
 ## 🎯 **Roadmap**
@@ -132,11 +113,12 @@ lavajato/
 - [x] Agendamento de serviços
 - [x] Sistema de preços
 - [x] Notificações WhatsApp
+- [x] PWA instalável
+- [ ] Funcionalidade offline completa
 - [ ] Pagamentos online
 - [ ] Avaliações e reviews
 - [ ] Sistema de cupons
 - [ ] Relatórios avançados
-- [ ] App para funcionários
 
 ## 🤝 **Contribuição**
 
@@ -156,10 +138,10 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 ## 🙏 **Agradecimentos**
 
-- Expo team pelo framework incrível
+- Next.js team pelo framework incrível
 - NestJS pela arquitetura robusta
 - Prisma pelo ORM moderno
-- React Native Paper pelos componentes
+- PWA por tornar o app instalável
 
 ---
 

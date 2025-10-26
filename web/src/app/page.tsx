@@ -10,10 +10,13 @@ export default function Home() {
 
   useEffect(() => {
     if (!isLoading) {
-      if (user) {
-        router.push('/dashboard');
+      if (!user) {
+        // Sem usuário, redireciona para login de cliente
+        router.push('/cliente/login');
       } else {
-        router.push('/login');
+        // Por enquanto, sempre vai para área do cliente
+        // TODO: Adicionar verificação de role (admin/cliente)
+        router.push('/cliente');
       }
     }
   }, [user, isLoading, router]);

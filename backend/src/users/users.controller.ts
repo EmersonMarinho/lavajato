@@ -12,6 +12,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from '../dto/user.dto';
+import { CreateEnderecoFavoritoDto, EnderecoFavoritoResponseDto } from '../dto/endereco-favorito.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 @ApiTags('Usuários')
@@ -65,5 +66,27 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
+  }
+
+  // Endereços Favoritos
+  @Post(':id/enderecos-favoritos')
+  @ApiOperation({ summary: 'Criar endereço favorito' })
+  @ApiResponse({ status: 201, description: 'Endereço favorito criado com sucesso', type: EnderecoFavoritoResponseDto })
+  createEnderecoFavorito(@Param('id') userId: string, @Body() createDto: CreateEnderecoFavoritoDto) {
+    return this.usersService.createEnderecoFavorito(userId, createDto);
+  }
+
+  @Get(':id/enderecos-favoritos')
+  @ApiOperation({ summary: 'Listar endereços favoritos do usuário' })
+  @ApiResponse({ status: 200, description: 'Lista de endereços favoritos', type: [EnderecoFavoritoResponseDto] })
+  getEnderecosFavoritos(@Param('id') userId: string) {
+    return this.usersService.getEnderecosFavoritos(userId);
+  }
+
+  @Delete(':id/enderecos-favoritos/:enderecoId')
+  @ApiOperation({ summary: 'Remover endereço favorito' })
+  @ApiResponse({ status: 200, description: 'Endereço favorito removido com sucesso' })
+  deleteEnderecoFavorito(@Param('id') userId: string, @Param('enderecoId') enderecoId: string) {
+    return this.usersService.deleteEnderecoFavorito(userId, enderecoId);
   }
 }

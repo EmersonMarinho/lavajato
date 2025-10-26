@@ -32,24 +32,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // MODO TESTE: Simular usuário logado para testar o frontend
-    const mockUser: User = {
-      id: 'test-user-123',
-      nome: 'Usuário Teste',
-      telefone: '41995085055',
-      pontos_fidelidade: 100,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    
-    const mockToken = 'mock-jwt-token-for-testing';
-    
-    setUser(mockUser);
-    setToken(mockToken);
-    setIsLoading(false);
-    
-    // Comentar o código original para modo de produção:
-    /*
     // Verificar se há dados de autenticação no localStorage
     const storedToken = localStorage.getItem('auth_token');
     const storedUser = localStorage.getItem('auth_user');
@@ -65,7 +47,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     }
     setIsLoading(false);
-    */
   }, []);
 
   const login = (authResponse: AuthResponse) => {
